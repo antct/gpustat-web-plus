@@ -54,31 +54,33 @@ def create_app(loop, *,
 
 def main():
     config = config_parser(file_path='config.ini')
-    exec_file = config.get('exec', 'file')
-    exec_cmd = open(exec_file, 'r').read()
-    exec_interval = float(config.get('exec', 'interval'))
-    hosts = eval(config.get('exec', 'hosts'))
-    port = int(config.get('web', 'port'))
-    debug_verbose = eval(config.get('debug', 'verbose'))
-
-    cprint(f"Hosts : {hosts}", color='green')
-    cprint(f"Cmd   : {exec_cmd}", color='yellow')
-
     context.config = config
 
+    exec_file = config.get('exec', 'file')
+    exec_cmd = open(exec_file, 'r').read()
+    exec_hosts = eval(config.get('exec', 'hosts'))
+    
+    cprint(f"Hosts : {exec_hosts}", color='green')
+    cprint(f"Cmd   : {exec_cmd}", color='yellow')
+
+    exec_interval = float(config.get('exec', 'interval'))
     if exec_interval > 0.1:
         context.interval = exec_interval
 
     loop = asyncio.get_event_loop()
     app, ssl_context = create_app(
         loop,
-        hosts=hosts,
-        default_port=22,
+        hosts=exec_hosts,
         exec_cmd=exec_cmd,
-        verbose=debug_verbose
+        verbose = eval(config.get('debug', 'verbose'))
     )
 
-    web.run_app(app, host='0.0.0.0', port=port, ssl_context=ssl_context)
+    web.run_app(
+        app, 
+        host=config.get('web', 'host'),
+        port=int(config.get('web', 'port')), 
+        ssl_context=ssl_context
+    )
 
 if __name__ == '__main__':
     main()

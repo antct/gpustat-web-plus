@@ -65,8 +65,7 @@ async def spawn_clients(hosts: Dict[str, str], exec_cmd: str, *, default_port: i
         return (pr.hostname, pr.username, pr.port if pr.port else default_port)
     try:
         custom_names = list(hosts.keys())
-        hosts = list(hosts.values())
-        host_names, host_usernames, host_ports = zip(*(_parse_host_string(host) for host in hosts))
+        host_names, host_usernames, host_ports = zip(*(_parse_host_string(host) for host in list(hosts.values())))
         for hostname, port in zip(host_names, host_ports):
             context.host_set_status(hostname, port, 0)
             context.host_set_message(hostname, port, "Loading ...")

@@ -3,7 +3,7 @@ import collections
 
 from termcolor import colored
 
-from gpustat_web.noticer import dingding_notice
+from .noticer import dingding_notice
 
 
 class Context(object):

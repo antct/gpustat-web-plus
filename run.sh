@@ -1,1 +1,1 @@
-python -m gpustat_web
+python -m gpustat_web_plus
