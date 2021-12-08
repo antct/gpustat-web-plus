@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>gpustat</title>
+  <style>
+    body {
+      overflow-x: scroll;
+      font-size: 13px;
+      font-family: "Fira Code", "XHei iOS7 Mono", "DejaVu Sans Mono", Consolas, monospace, "Courier New";
+    }
+    nav.header {
+      margin-bottom: 10px;
+    }
+    nav.header a,
+    nav.header a:visited {
+      color: #329af0;
+      text-decoration: none;
+    }
+    nav.header a:hover {
+      color: #a3daff;
+    }
+    #gpustat {
+      line-height: 1.0;
+    }
+    pre {
+      line-height: 1.0;
+      font-family: "Fira Code", "XHei iOS7 Mono", "DejaVu Sans Mono", Consolas, monospace, "Courier New";
+      white-space: pre;
+      word-wrap: normal;
+      margin: 0px;
+    }
+    pre.ansi2html-content {
+      line-height: 1.0;
+      font-family: "Fira Code", "XHei iOS7 Mono", "DejaVu Sans Mono", Consolas, monospace, "Courier New";
+      white-space: pre;
+      word-wrap: normal;
+    }
+  </style>
+
+  {{ ansi2html_headers | safe }}
+</head>
+
+<body class="body_foreground body_background" style="font-size: normal;">
+
+  <nav class="header">
+    <a href="https://github.com/wookayin/gpustat-web" target="_blank">gpustat-web</a>
+    <a href="javascript:clearTimeout(window.timer);" style="margin-left: 20px; color: #666666;"
+      onclick="this.style.display='none';">[turn off auto-refresh]</a>
+  </nav>
+
+  <div id="gpustat">
+    <pre class="ansi2html-content" id="gpustat-content">
+      </pre>
+  </div>
+
+</body>
+
+<script>
+  var ws_protocol = (location.protocol == 'https:' ? 'wss:' : 'ws:');
+  var ws = new WebSocket(ws_protocol + "//{{http_host}}/ws");
+  ws.onopen = function (e) {
+    console.log('Websocket connection established', ws);
+    ws.send('gpustat');
+  };
+  ws.onerror = function (error) {
+    console.log("onerror", error);
+  };
+  ws.onmessage = function (e) {
+    var msg = e.data;
+    console.log('Received data, length = ' + msg.length + ', ' + new Date().toString());
+    document.getElementById('gpustat-content').innerHTML = msg;
+  };
+  window.onbeforeunload = function () {
+    ws.close();  // close websocket client on exit
+  };
+  window.timer = setInterval(function () { ws.send('gpustat'); }, {{ interval }});
+</script>
+
+</html>

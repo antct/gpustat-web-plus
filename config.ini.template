@@ -1,0 +1,19 @@
+[meta]
+names = ['cpu', 'gpu', 'mem', 'hdd']
+low_thresholds = [25.0, 25.0, 50.0, 50.0]
+high_thresholds = [50.0, 50.0, 75.0, 75.0]
+
+[exec]
+file=cmd.sh
+interval=5
+hosts={
+    'node1': 'username@ip:port'
+    }
+
+[debug]
+verbose=False
+
+[web]
+port=12346
+ssl-certfile=
+ssl-keyfile=
