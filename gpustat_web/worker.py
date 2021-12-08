@@ -11,7 +11,7 @@ from .context import context
 
 async def run_client(hostname: str, exec_cmd: str, *,
                      username=None, port=None, custom_name=None,
-                     poll_delay=None, timeout=30.0, verbose=False, config=None):
+                     poll_delay=None, timeout=30.0, verbose=False):
     if poll_delay is None:
         poll_delay = context.interval
 
@@ -32,21 +32,25 @@ async def run_client(hostname: str, exec_cmd: str, *,
                 else:
                     if verbose: cprint(f"[{now} [{hostname}:{port}] OK from gpustat ({len(result.stdout)} bytes)", color='cyan')
                     context.host_set_status(hostname, port, 1)
-                    context.host_update_message(hostname, port, result.stdout, custom_name=custom_name, config=config)
+                    context.host_update_message(hostname, port, result.stdout, custom_name=custom_name)
                 await asyncio.sleep(poll_delay)
     while True:
         try:
             await _loop_body()
         except asyncio.CancelledError:
+            context.host_set_status(hostname, port, -1)
             cprint(f"[{hostname}:{port}] Closed as being cancelled.", attrs=['bold'])
             break
         except (asyncio.TimeoutError) as ex:
+            context.host_set_status(hostname, port, -1)
             cprint(f"Timeout after {timeout} sec: {hostname}", color='red')
             context.host_set_message(hostname, port, colored(f"Timeout after {timeout} sec", 'red'))
         except (asyncssh.misc.DisconnectError, asyncssh.misc.ChannelOpenError, OSError) as ex:
+            context.host_set_status(hostname, port, -1)
             cprint(f"Disconnected : {hostname}, {str(ex)}", color='red')
             context.host_set_message(hostname, port, colored(str(ex), 'red'))
         except Exception as e:
+            context.host_set_status(hostname, port, -1)
             cprint(f"[{hostname}:{port}] {e}", color='red')
             context.host_set_message(hostname, port, colored(f"{type(e).__name__}: {e}", 'red'))
             cprint(traceback.format_exc())
@@ -54,7 +58,7 @@ async def run_client(hostname: str, exec_cmd: str, *,
         cprint(f"[{hostname}:{port}] Disconnected, retrying in {poll_delay} sec...", color='yellow')
         await asyncio.sleep(poll_delay)
 
-async def spawn_clients(hosts: Dict[str, str], exec_cmd: str, *, default_port: int, verbose=False, config=None):
+async def spawn_clients(hosts: Dict[str, str], exec_cmd: str, *, default_port: int, verbose=False):
     def _parse_host_string(netloc: str) -> Tuple[str, Optional[int]]:
         pr = urllib.parse.urlparse('ssh://{}/'.format(netloc))
         assert pr.hostname is not None, netloc
@@ -67,7 +71,7 @@ async def spawn_clients(hosts: Dict[str, str], exec_cmd: str, *, default_port: i
             context.host_set_status(hostname, port, 0)
             context.host_set_message(hostname, port, "Loading ...")
         await asyncio.gather(*[
-            run_client(hostname, exec_cmd, username=username, port=port or default_port, custom_name=custom_name, verbose=verbose, config=config)
+            run_client(hostname, exec_cmd, username=username, port=port or default_port, custom_name=custom_name, verbose=verbose)
             for (hostname, username, port, custom_name) in zip(host_names, host_usernames, host_ports, custom_names)
         ])
     except Exception as ex:

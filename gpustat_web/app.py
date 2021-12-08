@@ -20,7 +20,7 @@ def create_app(loop, *,
                ssl_certfile: Optional[str] = None,
                ssl_keyfile: Optional[str] = None,
                exec_cmd: Optional[str] = None,
-               verbose=True, config=None):
+               verbose=True):
 
     DEFAULT_GPUSTAT_COMMAND = "gpustat --color --gpuname-width 25"
     if not exec_cmd: exec_cmd = DEFAULT_GPUSTAT_COMMAND
@@ -30,7 +30,7 @@ def create_app(loop, *,
     app.add_routes([web.get('/ws', websocket_handler)])
 
     async def start_background_tasks(app):
-        clients = spawn_clients(hosts, exec_cmd, default_port=default_port, verbose=verbose, config=config)
+        clients = spawn_clients(hosts, exec_cmd, default_port=default_port, verbose=verbose)
         app['tasks'] = loop.create_task(clients)
         await asyncio.sleep(0.1)
     app.on_startup.append(start_background_tasks)
@@ -64,6 +64,8 @@ def main():
     cprint(f"Hosts : {hosts}", color='green')
     cprint(f"Cmd   : {exec_cmd}", color='yellow')
 
+    context.config = config
+
     if exec_interval > 0.1:
         context.interval = exec_interval
 
@@ -73,8 +75,7 @@ def main():
         hosts=hosts,
         default_port=22,
         exec_cmd=exec_cmd,
-        verbose=debug_verbose,
-        config=config
+        verbose=debug_verbose
     )
 
     web.run_app(app, host='0.0.0.0', port=port, ssl_context=ssl_context)

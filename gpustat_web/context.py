@@ -3,9 +3,11 @@ import collections
 
 from termcolor import colored
 
+
 class Context(object):
     def __init__(self):
         self.interval = 5.0
+        self.config = None
         self.host_data = collections.defaultdict(lambda: collections.defaultdict())
 
     def host_set_status(self, hostname: str, port: str, status: int):
@@ -14,7 +16,7 @@ class Context(object):
     def host_set_message(self, hostname: str, port: str, msg: str):
         self.host_data[f"{hostname}:{port}"]['msg'] = colored(f"({hostname}:{port}) ", 'white') + msg + '\n'
 
-    def host_update_message(self, hostname: str, port: str, data: str, custom_name: str, config=None):
+    def host_update_message(self, hostname: str, port: str, data: str, custom_name: str):
         ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         # 去掉颜色字符
         data_nocolor = ansi_escape.sub('', data)
@@ -32,9 +34,9 @@ class Context(object):
         cuda_version = cuda_version[:cuda_version.find('.')]
         meta = '\t'.join(meta.split('\t')[1:])
         # 调整meta信息中的颜色
-        meta_names = eval(config.get('meta', 'names'))
-        meta_thres_low = eval(config.get('meta', 'low_thresholds'))
-        meta_thres_high = eval(config.get('meta', 'high_thresholds'))
+        meta_names = eval(self.config.get('meta', 'names'))
+        meta_thres_low = eval(self.config.get('meta', 'low_thresholds'))
+        meta_thres_high = eval(self.config.get('meta', 'high_thresholds'))
         for meta_name, meta_thre_low, meta_thre_high in zip(meta_names, meta_thres_low, meta_thres_high):
             cur_meta = re.search(r'{}\((.*?)\%\)'.format(meta_name), meta)
             if float(cur_meta.group(1)) >= meta_thre_high:
