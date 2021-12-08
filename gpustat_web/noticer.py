@@ -25,4 +25,3 @@ def dingding_notice(title, text, token, secret):
         }
     }
     resp = requests.post(url=url, data=json.dumps(data), headers=headers)
-    print(resp.json())

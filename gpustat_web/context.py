@@ -3,6 +3,8 @@ import collections
 
 from termcolor import colored
 
+from gpustat_web.noticer import dingding_notice
+
 
 class Context(object):
     def __init__(self):
@@ -11,7 +13,16 @@ class Context(object):
         self.host_data = collections.defaultdict(lambda: collections.defaultdict())
 
     def host_set_status(self, hostname: str, port: str, status: int):
+        if eval(self.config.get('notice', 'on')) and self.host_data[f"{hostname}:{port}"].get('notice_flag') == True and status == -1:
+            dingding_notice(
+                title='服务器监控报警信息',
+                text='[主机] {}:{}\n\n[异常] 宕机 请及时处理'.format(hostname, port),
+                token=self.config.get('notice', 'dingding_token'),
+                secret=self.config.get('notice', 'dingding_secret')
+            )
         self.host_data[f"{hostname}:{port}"]['status'] = status
+        if status != -1: self.host_data[f"{hostname}:{port}"]['notice_flag'] = True
+        else: self.host_data[f"{hostname}:{port}"]['notice_flag'] = False
 
     def host_set_message(self, hostname: str, port: str, msg: str):
         self.host_data[f"{hostname}:{port}"]['msg'] = colored(f"({hostname}:{port}) ", 'white') + msg + '\n'
@@ -37,11 +48,27 @@ class Context(object):
         meta_names = eval(self.config.get('meta', 'names'))
         meta_thres_low = eval(self.config.get('meta', 'low_thresholds'))
         meta_thres_high = eval(self.config.get('meta', 'high_thresholds'))
-        for meta_name, meta_thre_low, meta_thre_high in zip(meta_names, meta_thres_low, meta_thres_high):
+        meta_thres_notice = eval(self.config.get('meta', 'notice_thresholds'))
+        meta_notice_flags = self.host_data[f"{hostname}:{port}"].get('meta_notice_flags')
+        if meta_notice_flags is None: self.host_data[f"{hostname}:{port}"]['meta_notice_flags'] = [True] * len(meta_names)
+
+        for idx, (meta_name, meta_thre_low, meta_thre_high, meta_thre_notice, _) in enumerate(zip(meta_names, meta_thres_low, meta_thres_high, meta_thres_notice, self.host_data[f"{hostname}:{port}"]['meta_notice_flags'])):
             cur_meta = re.search(r'{}\((.*?)\%\)'.format(meta_name), meta)
-            if float(cur_meta.group(1)) >= meta_thre_high:
+            cur_value = float(cur_meta.group(1))
+            if cur_value >= meta_thre_notice:
+                if self.host_data[f"{hostname}:{port}"]['meta_notice_flags'][idx] and eval(self.config.get('notice', 'on')):
+                    dingding_notice(
+                        title='服务器监控报警信息',
+                        text='[主机] {}:{}\n\n[异常] {}占用已达{}% 请及时处理'.format(hostname, port, meta_name, cur_value),
+                        token=self.config.get('notice', 'dingding_token'),
+                        secret=self.config.get('notice', 'dingding_secret')
+                    )
+                self.host_data[f"{hostname}:{port}"]['meta_notice_flags'][idx] = False
+            else:
+                self.host_data[f"{hostname}:{port}"]['meta_notice_flags'][idx] = True
+            if cur_value >= meta_thre_high:
                 modify_meta = colored(cur_meta.group(0), 'red')
-            elif float(cur_meta.group(1)) <= meta_thre_low:
+            elif cur_value <= meta_thre_low:
                 modify_meta = colored(cur_meta.group(0), 'green')
             else:
                 modify_meta = colored(cur_meta.group(0), 'yellow')
