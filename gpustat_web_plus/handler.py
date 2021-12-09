@@ -27,10 +27,14 @@ def render_gpustat_body():
             machine_alive += 1
         body += data['msg']
     gpu_num, gpu_use, gpu_tot, power = 0, 0, 0, 0
+    gpu_recommend, gpu_max_score = None, 0
     user2mem = collections.defaultdict(int)
     for host, data in context.host_data.items():
         if not data: continue
         if 'gpu' in data:
+            if data['gpu']['score'] > gpu_max_score:
+                gpu_max_score = data['gpu']['score']
+                gpu_recommend = data['custom_name']
             gpu_num += data['gpu']['num']
             gpu_use += data['gpu']['use']
             gpu_tot += data['gpu']['tot']
@@ -40,20 +44,22 @@ def render_gpustat_body():
             for user, mem in data['usr2mem'].items():
                 user2mem[user] += mem
     user2mem = list(user2mem.items())
-    if len(user2mem) < 3:
-        user2mem.extend([["null", 0]] * (3-len(user2mem)))
+    if len(user2mem) < 5:
+        user2mem.extend([["null", 0]] * (5-len(user2mem)))
     user2mem = sorted(user2mem, key=lambda x: x[1], reverse=True)
     template = 'time@now: {}\n' + \
-        'machine@alive: {}  machine@dead: {}  power@total: {}W\n' + \
+        'user@num: {}  node@alive: {}  node@dead: {}  power@total: {}W\n' + \
         'gpu@num: {}  gpu@used: {}G  gpu@free: {}G  gpu@total: {}G\n' + \
-        'gpu@rank: top@1({}:{}G)  top@2({}:{}G)  top@3({}:{}G)\n\n'
+        'gpu@rank: 1({}:{}G) 2({}:{}G) 3({}:{}G) 4({}:{}G) 5({}:{}G)\n\n'
     body = colored(template.format(
-        time.asctime( time.localtime(time.time())),
-        machine_alive, machine_tot-machine_alive, power,
+        time.asctime(time.localtime(time.time())),
+        len(user2mem), machine_alive, machine_tot-machine_alive, power,
         gpu_num, int(gpu_use/1024.0), int((gpu_tot-gpu_use)/1024.0), int(gpu_tot/1024.0),
         user2mem[0][0], int(user2mem[0][1]/1024.0),
         user2mem[1][0], int(user2mem[1][1]/1024.0),
-        user2mem[2][0], int(user2mem[2][1]/1024.0)
+        user2mem[2][0], int(user2mem[2][1]/1024.0),
+        user2mem[3][0], int(user2mem[3][1]/1024.0),
+        user2mem[4][0], int(user2mem[4][1]/1024.0)
         ), "white") + body
     return ansi_conv.convert(body, full=False)
 

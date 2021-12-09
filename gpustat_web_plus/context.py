@@ -52,7 +52,8 @@ class Context(object):
         meta_notice_flags = self.host_data[f"{hostname}:{port}"].get('meta_notice_flags')
         if meta_notice_flags is None: self.host_data[f"{hostname}:{port}"]['meta_notice_flags'] = [True] * len(meta_names)
 
-        for idx, (meta_name, meta_thre_low, meta_thre_high, meta_thre_notice, _) in enumerate(zip(meta_names, meta_thres_low, meta_thres_high, meta_thres_notice, self.host_data[f"{hostname}:{port}"]['meta_notice_flags'])):
+        meta_zip = zip(meta_names, meta_thres_low, meta_thres_high, meta_thres_notice, self.host_data[f"{hostname}:{port}"]['meta_notice_flags'])
+        for idx, (meta_name, meta_thre_low, meta_thre_high, meta_thre_notice, _) in enumerate(meta_zip):
             cur_meta = re.search(r'{}\((.*?)\%\)'.format(meta_name), meta)
             cur_value = float(cur_meta.group(1))
             if cur_value >= meta_thre_notice:
@@ -96,9 +97,10 @@ class Context(object):
             usr2mem[str(name)] += int(mem)
         # 更新当前主机数据
         self.host_data[f"{hostname}:{port}"].update({
-            'gpu': {'use': gpu_use, 'tot': gpu_tot, 'num': gpu_num},
+            'gpu': {'use': gpu_use, 'tot': gpu_tot, 'num': gpu_num, 'score': gpu_num*(1.0-gpu_use/gpu_tot)},
             'pow': power,
-            'usr2mem': usr2mem
+            'usr2mem': usr2mem,
+            'custom_name': custom_name
         })
 
 context = Context()
