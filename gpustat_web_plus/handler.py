@@ -1,21 +1,20 @@
 from .context import context
 
-import time
+import datetime
 import ansi2html
 import collections
 import collections
-import time
 import aiohttp
 
 from termcolor import cprint, colored
 from aiohttp import web
 import aiohttp_jinja2 as aiojinja2
 
-
 scheme = 'solarized'
 ansi2html.style.SCHEME[scheme] = list(ansi2html.style.SCHEME[scheme])
 ansi2html.style.SCHEME[scheme][0] = '#555555'
 ansi_conv = ansi2html.Ansi2HTMLConverter(dark_bg=True, scheme=scheme)
+start_time = datetime.datetime.now()
 
 def render_gpustat_body():
     body = ''
@@ -47,12 +46,15 @@ def render_gpustat_body():
     if len(user2mem) < 5:
         user2mem.extend([["null", 0]] * (5-len(user2mem)))
     user2mem = sorted(user2mem, key=lambda x: x[1], reverse=True)
-    template = 'time@now: {}\n' + \
+    cur_time = datetime.datetime.now()
+    run_time = cur_time - start_time
+    run_time = '{} days {} hours'.format(run_time.days, int(run_time.total_seconds() // 3600))
+    template = 'time@now: {} time@run: {}\n' + \
         'user@num: {}  node@alive: {}  node@dead: {}  power@total: {}W\n' + \
         'gpu@num: {}  gpu@used: {}G  gpu@free: {}G  gpu@total: {}G\n' + \
         'gpu@rank: 1({}:{}G) 2({}:{}G) 3({}:{}G) 4({}:{}G) 5({}:{}G)\n\n'
     body = colored(template.format(
-        time.asctime(time.localtime(time.time())),
+        datetime.datetime.strftime(cur_time, '%Y-%m-%d %H:%M:%S'), run_time,
         len(user2mem), machine_alive, machine_tot-machine_alive, power,
         gpu_num, int(gpu_use/1024.0), int((gpu_tot-gpu_use)/1024.0), int(gpu_tot/1024.0),
         user2mem[0][0], int(user2mem[0][1]/1024.0),
