@@ -48,7 +48,7 @@ def render_gpustat_body():
     user2mem = sorted(user2mem, key=lambda x: x[1], reverse=True)
     cur_time = datetime.datetime.now()
     run_time = cur_time - start_time
-    run_time = '{} days {} hours'.format(run_time.days, int(run_time.total_seconds() // 3600))
+    run_time = '{} days {} hours'.format(run_time.days, int(run_time.total_seconds() // 3600) - 24 * run_time.days)
     template = 'time@now: {} time@run: {}\n' + \
         'user@num: {}  node@alive: {}  node@dead: {}  power@total: {}W\n' + \
         'gpu@num: {}  gpu@used: {}G  gpu@free: {}G  gpu@total: {}G\n' + \
