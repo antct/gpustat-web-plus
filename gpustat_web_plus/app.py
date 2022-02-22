@@ -14,7 +14,7 @@ from .config import config_parser
 
 __PATH__ = os.path.abspath(os.path.dirname(__file__))
 
-def create_app(loop, *,
+def create_app(*,
                hosts=['localhost'],
                default_port: int = 22,
                ssl_certfile: Optional[str] = None,
@@ -31,6 +31,7 @@ def create_app(loop, *,
 
     async def start_background_tasks(app):
         clients = spawn_clients(hosts, exec_cmd, default_port=default_port, verbose=verbose)
+        loop = app.loop if hasattr(app, 'loop') else asyncio.get_event_loop()
         app['tasks'] = loop.create_task(clients)
         await asyncio.sleep(0.1)
     app.on_startup.append(start_background_tasks)
@@ -67,9 +68,7 @@ def main():
     if exec_interval > 0.1:
         context.interval = exec_interval
 
-    loop = asyncio.get_event_loop()
     app, ssl_context = create_app(
-        loop,
         hosts=exec_hosts,
         exec_cmd=exec_cmd,
         verbose = eval(config.get('debug', 'verbose'))
